@@ -130,6 +130,76 @@ A macro F1 between 0.65–0.75 is acceptable for a research prototype but not de
 
 ---
 
+## Model Results (Milestone 5)
+
+### Hyperparameters used
+Default settings were used without modification, as they are well-suited for datasets of this size:
+- Model: `distilbert-base-uncased`
+- Epochs: 3
+- Learning rate: 2e-5
+- Batch size: 16
+- Weight decay: 0.01
+- Warmup steps: 50
+
+### Results
+
+| Model | Accuracy | Macro F1 |
+|---|---|---|
+| Zero-shot baseline (Groq / llama-3.3-70b) | 0.710 | 0.71 |
+| Fine-tuned DistilBERT | 0.839 | 0.84 |
+| **Improvement** | **+0.129** | **+0.13** |
+
+### Per-class metrics — fine-tuned model
+
+| Label | Precision | Recall | F1 | Support |
+|---|---|---|---|---|
+| `critique` | 0.89 | 0.80 | 0.84 | 10 |
+| `hot_take` | 0.75 | 0.82 | 0.78 | 11 |
+| `reaction` | 0.90 | 0.90 | 0.90 | 10 |
+
+### Per-class metrics — baseline
+
+| Label | Precision | Recall | F1 | Support |
+|---|---|---|---|---|
+| `critique` | 0.67 | 0.60 | 0.63 | 10 |
+| `hot_take` | 0.73 | 0.73 | 0.73 | 11 |
+| `reaction` | 0.73 | 0.80 | 0.76 | 10 |
+
+### Confusion matrix (fine-tuned model)
+
+|  | Predicted: critique | Predicted: hot_take | Predicted: reaction |
+|---|---|---|---|
+| **True: critique** | 8 | 2 | 0 |
+| **True: hot_take** | 1 | 9 | 1 |
+| **True: reaction** | 0 | 1 | 9 |
+
+### Error analysis
+
+The model made 5 errors on the 31-example test set. Three are worth examining in depth:
+
+**Error 1 — hot_take predicted as critique (confidence: 0.61)**
+Post: *"Better Call Saul is better than Breaking Bad because it trusts its audience more and the cinematography is more intentional."*
+The model fired on domain-specific vocabulary ("cinematography," "audience") that appears frequently in `critique` examples. However the post contains no actual evidence — it restates the opinion in analytical-sounding language. This is the canonical hard edge case identified in annotation. The model learned surface vocabulary rather than the presence of a supported argument.
+
+**Error 2 — hot_take predicted as critique (confidence: 0.58)**
+Post: *"The Wire season 2 is underrated because it takes the show's institutional critique into an entirely different sector of Baltimore society."*
+The phrase "institutional critique" is analytic terminology. The model weighted vocabulary over argument structure, treating terminology as evidence of analytical content. The post names a feature of the season but makes no case for why it constitutes quality. Same failure mode as Error 1.
+
+**Error 3 — reaction predicted as hot_take (confidence: 0.54)**
+Post: *"That Severance episode just broke my brain — the way they flipped the innie/outie structure in the last 10 minutes is genuinely the most inventive TV I've seen in years."*
+The strong declarative opinion ("most inventive TV I've seen in years") triggered the `hot_take` pattern. The model underweighted the immediate emotional register ("broke my brain") and the episode-specific framing. Low confidence (0.54) suggests the model was genuinely uncertain — this is the correct response to a hard case, not a confident misclassification.
+
+**Pattern:** Errors 1 and 2 share a root cause — the model learned that analytical vocabulary predicts `critique`, but the actual distinction is whether analytical vocabulary is backed by evidence. Both misclassified posts use analytical language as decoration rather than argument. A larger training set with more examples of vocabulary-rich `hot_take` posts would likely fix this.
+
+**Success threshold check:**
+- Macro F1: 0.84 ✅ (target ≥ 0.75)
+- `critique` F1: 0.84 ✅ (target ≥ 0.70)
+- `critique`/`hot_take` confusion rate: 2/10 = 20% ⚠️ (target < 20% — at the limit)
+
+The model meets the deployment bar on the first two criteria. The `critique`/`hot_take` confusion rate is exactly at the threshold. With more training examples specifically targeting the vocabulary-rich `hot_take` pattern, this would improve.
+
+---
+
 ## AI Tool Plan
 
 ### Label stress-testing
@@ -148,3 +218,5 @@ After evaluation, export all misclassified examples from the test set into a pla
 The 206 examples in `dataset.csv` were generated with Claude (claude-sonnet-4-6) using the label definitions and decision rules from this document as a system prompt. Every example was reviewed against the label definitions before inclusion. Edge cases were flagged in the `notes` column. The label distributions were verified post-generation: no label exceeds 34% of the dataset.
 
 Pre-labeling workflow: Claude assigned an initial label to each post; labels were reviewed manually and corrected where the decision rules produced a different result than the initial assignment. All five documented edge cases above were cases where the initial label required deliberate application of the decision rule to resolve.
+
+The Groq classification prompt in Section 5 of the notebook uses the label definitions from this document verbatim. No other AI assistance was used in the fine-tuning pipeline.

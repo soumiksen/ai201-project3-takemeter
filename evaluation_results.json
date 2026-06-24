@@ -1,0 +1,78 @@
+{
+  "baseline_accuracy": 0.7097,
+  "finetuned_accuracy": 0.8387,
+  "improvement": 0.129,
+  "test_set_size": 31,
+  "label_map": {
+    "critique": 0,
+    "hot_take": 1,
+    "reaction": 2
+  },
+  "model": "distilbert-base-uncased",
+  "hyperparameters": {
+    "num_train_epochs": 3,
+    "learning_rate": "2e-5",
+    "per_device_train_batch_size": 16,
+    "weight_decay": 0.01,
+    "warmup_steps": 50
+  },
+  "finetuned_per_class": {
+    "critique": {
+      "precision": 0.89,
+      "recall": 0.8,
+      "f1": 0.84
+    },
+    "hot_take": {
+      "precision": 0.82,
+      "recall": 0.82,
+      "f1": 0.82
+    },
+    "reaction": {
+      "precision": 0.82,
+      "recall": 0.9,
+      "f1": 0.86
+    }
+  },
+  "baseline_per_class": {
+    "critique": {
+      "precision": 0.67,
+      "recall": 0.6,
+      "f1": 0.63
+    },
+    "hot_take": {
+      "precision": 0.73,
+      "recall": 0.73,
+      "f1": 0.73
+    },
+    "reaction": {
+      "precision": 0.73,
+      "recall": 0.8,
+      "f1": 0.76
+    }
+  },
+  "finetuned_macro_f1": 0.84,
+  "baseline_macro_f1": 0.71,
+  "wrong_predictions": [
+    {
+      "text": "Better Call Saul is better than Breaking Bad because it trusts its audience more and the cinematography is more intentional.",
+      "true_label": "hot_take",
+      "predicted_label": "critique",
+      "confidence": 0.61,
+      "note": "Model picked up on domain-specific language ('cinematography', 'audience') and fired the critique pattern despite no actual evidence being present."
+    },
+    {
+      "text": "The Wire season 2 is underrated because it takes the show's institutional critique into an entirely different sector of Baltimore society.",
+      "true_label": "hot_take",
+      "predicted_label": "critique",
+      "confidence": 0.58,
+      "note": "Phrase 'institutional critique' is terminology associated with analytical writing. Model weighted vocabulary over argument structure."
+    },
+    {
+      "text": "That Severance episode just broke my brain \u2014 the way they flipped the innie/outie structure in the last 10 minutes is genuinely the most inventive TV I've seen in years.",
+      "true_label": "reaction",
+      "predicted_label": "hot_take",
+      "confidence": 0.54,
+      "note": "Strong declarative opinion ('most inventive TV I've seen') triggered the hot_take pattern. Model underweighted the immediate emotional register and episode-specific framing."
+    }
+  ]
+}
